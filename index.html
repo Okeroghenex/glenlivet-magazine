@@ -1,0 +1,195 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>The Glenlivet Experience</title>
+<meta name="description" content="Interactive preview of The Glenlivet Experience guidebook.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@1,9..144,400&family=Inter:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #1a1714;
+    --bg-2: #24201b;
+    --ink: #efe9df;
+    --muted: #a39a8c;
+    --line: rgba(239, 233, 223, 0.14);
+    --accent: #c9a46a;
+  }
+  * { box-sizing: border-box; }
+  html, body { height: 100%; margin: 0; }
+  body {
+    background: radial-gradient(ellipse at 50% 40%, var(--bg-2) 0%, var(--bg) 70%);
+    color: var(--ink);
+    font-family: Inter, system-ui, sans-serif;
+    display: flex; flex-direction: column;
+    overflow: hidden;
+    -webkit-font-smoothing: antialiased;
+  }
+  header {
+    display: flex; align-items: baseline; justify-content: space-between;
+    padding: 18px 24px 0; gap: 12px;
+  }
+  .brand { font-family: Fraunces, Georgia, serif; font-style: italic; font-size: 20px; letter-spacing: .01em; }
+  .brand b { font-family: Inter, sans-serif; font-style: normal; font-weight: 500; }
+  .tag { font-size: 12px; color: var(--muted); letter-spacing: .08em; text-transform: uppercase; }
+  main {
+    flex: 1; min-height: 0;
+    display: flex; align-items: center; justify-content: center;
+    padding: 16px;
+  }
+  .stage { width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; }
+  #book { margin: 0 auto; transition: transform .6s cubic-bezier(.4,0,.2,1); }
+  .page { background: #fff; overflow: hidden; }
+  .page img { width: 100%; height: 100%; display: block; object-fit: cover; user-select: none; -webkit-user-drag: none; }
+  .page.--left  { box-shadow: inset -18px 0 24px -18px rgba(0,0,0,.25); }
+  .page.--right { box-shadow: inset 18px 0 24px -18px rgba(0,0,0,.25); }
+
+  .bar {
+    display: flex; align-items: center; justify-content: center; gap: 10px;
+    padding: 0 16px 20px;
+  }
+  .btn {
+    appearance: none; border: 1px solid var(--line); background: rgba(255,255,255,.03);
+    color: var(--ink); height: 40px; min-width: 40px; padding: 0 14px; border-radius: 999px;
+    font: 500 13px/1 Inter, sans-serif; cursor: pointer; display: inline-flex; align-items: center; justify-content: center; gap: 6px;
+    transition: background .15s, border-color .15s;
+  }
+  .btn:hover { background: rgba(255,255,255,.08); border-color: rgba(239,233,223,.3); }
+  .btn:disabled { opacity: .35; cursor: default; }
+  .btn svg { width: 16px; height: 16px; }
+  .count { font-size: 13px; color: var(--muted); min-width: 120px; text-align: center; font-variant-numeric: tabular-nums; }
+  .count strong { color: var(--ink); font-weight: 500; }
+  .hint { position: fixed; left: 50%; bottom: 74px; transform: translateX(-50%); font-size: 12px; color: var(--muted);
+    transition: opacity .6s; pointer-events: none; white-space: nowrap; }
+  .loading { position: fixed; inset: 0; display: grid; place-items: center; color: var(--muted); font-size: 13px; letter-spacing: .08em; text-transform: uppercase; }
+  @media (max-width: 600px) {
+    header { padding: 14px 16px 0; }
+    .tag { display: none; }
+    .btn.label span { display: none; }
+    .count { min-width: 90px; }
+  }
+</style>
+</head>
+<body>
+<header>
+  <div class="brand">The <b>Original</b></div>
+  <div class="tag">Guidebook · Preview draft</div>
+</header>
+
+<main><div class="stage"><div id="book"></div></div></main>
+
+<div class="bar">
+  <button class="btn" id="first" title="Front cover" aria-label="Front cover">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 18l-6-6 6-6M11 18l-6-6 6-6"/></svg>
+  </button>
+  <button class="btn label" id="prev" aria-label="Previous page">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M15 18l-6-6 6-6"/></svg><span>Prev</span>
+  </button>
+  <div class="count" id="count">Cover</div>
+  <button class="btn label" id="next" aria-label="Next page">
+    <span>Next</span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 18l6-6-6-6"/></svg>
+  </button>
+  <button class="btn" id="fs" title="Fullscreen" aria-label="Fullscreen">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5"/></svg>
+  </button>
+</div>
+<div class="hint" id="hint">Drag a page corner or click to turn · ← → keys work too</div>
+<div class="loading" id="loading">Opening…</div>
+
+<script src="https://cdn.jsdelivr.net/npm/page-flip@2.0.7/dist/js/page-flip.browser.js"></script>
+<script>
+  // Reading order: front cover, inside spreads 02–17 (left, right), back cover.
+  const pages = ['pages/s01-R.jpg'];
+  for (let i = 2; i <= 17; i++) {
+    const n = String(i).padStart(2, '0');
+    pages.push(`pages/s${n}-L.jpg`, `pages/s${n}-R.jpg`);
+  }
+  pages.push('pages/s01-L.jpg');
+
+  const book = document.getElementById('book');
+  pages.forEach((src, i) => {
+    const el = document.createElement('div');
+    el.className = 'page';
+    if (i === 0 || i === pages.length - 1) el.dataset.density = 'hard';
+    const img = document.createElement('img');
+    img.src = src; img.alt = i === 0 ? 'Front cover' : i === pages.length - 1 ? 'Back cover' : `Page ${i}`;
+    img.loading = i < 6 ? 'eager' : 'lazy';
+    img.draggable = false;
+    el.appendChild(img);
+    book.appendChild(el);
+  });
+
+  // Keep the book fitting inside the stage while preserving A4 ratio.
+  const stage = document.querySelector('.stage');
+  function fit() {
+    const W = stage.clientWidth, H = stage.clientHeight;
+    const portrait = W < 700;
+    const spreadRatio = portrait ? 210 / 297 : 420 / 297;
+    let w = W, h = w / spreadRatio;
+    if (h > H) { h = H; w = h * spreadRatio; }
+    book.style.width = Math.floor(w) + 'px';
+    book.style.height = Math.floor(h) + 'px';
+  }
+  fit();
+  // A4 page: 210 × 297
+  const flip = new St.PageFlip(book, {
+    width: 420, height: 594,
+    size: 'stretch',
+    minWidth: 160, maxWidth: 1000,
+    minHeight: 226, maxHeight: 1414,
+    showCover: true,
+    maxShadowOpacity: 0.45,
+    mobileScrollSupport: false,
+    usePortrait: true,
+    flippingTime: 800,
+  });
+  flip.loadFromHTML(book.querySelectorAll('.page'));
+
+  window.addEventListener('resize', () => { fit(); flip.update && flip.update(); });
+
+  const total = pages.length;
+  const $count = document.getElementById('count');
+  const $prev = document.getElementById('prev'), $next = document.getElementById('next'), $first = document.getElementById('first');
+  function label(i) {
+    if (i === 0) return 'Front cover';
+    if (i === total - 1) return 'Back cover';
+    const orient = flip.getOrientation && flip.getOrientation();
+    if (orient === 'landscape' && i % 2 === 1 && i + 1 < total - 1) return `Pages <strong>${i}–${i + 1}</strong> of ${total - 2}`;
+    if (orient === 'landscape' && i % 2 === 0) return `Pages <strong>${i - 1}–${i}</strong> of ${total - 2}`;
+    return `Page <strong>${i}</strong> of ${total - 2}`;
+  }
+  function sync() {
+    const i = flip.getCurrentPageIndex();
+    // Centre the closed magazine: shift it when only the front or back cover is showing.
+    const landscape = flip.getOrientation && flip.getOrientation() === 'landscape';
+    let shift = 0;
+    if (landscape && i === 0) shift = -25;
+    if (landscape && i === total - 1) shift = 25;
+    book.style.transform = `translateX(${shift}%)`;
+    $count.innerHTML = label(i);
+    $prev.disabled = $first.disabled = i === 0;
+    $next.disabled = i >= total - 1;
+  }
+  flip.on('flip', sync);
+  flip.on('changeOrientation', sync);
+  flip.on('init', () => { document.getElementById('loading').remove(); sync(); });
+  setTimeout(() => { const l = document.getElementById('loading'); if (l) l.remove(); sync(); }, 1500);
+
+  $prev.onclick = () => flip.flipPrev();
+  $next.onclick = () => flip.flipNext();
+  $first.onclick = () => flip.turnToPage(0) || sync();
+  document.addEventListener('keydown', e => {
+    if (e.key === 'ArrowRight') flip.flipNext();
+    if (e.key === 'ArrowLeft') flip.flipPrev();
+  });
+  document.getElementById('fs').onclick = () => {
+    if (!document.fullscreenElement) document.documentElement.requestFullscreen?.();
+    else document.exitFullscreen?.();
+  };
+  const hint = document.getElementById('hint');
+  flip.on('flip', () => { hint.style.opacity = 0; });
+  setTimeout(() => hint.style.opacity = 0, 6000);
+</script>
+</body>
+</html>
