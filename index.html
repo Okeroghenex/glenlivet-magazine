@@ -74,7 +74,7 @@
 <body>
 <header>
   <div class="brand">The <b>Original</b></div>
-  <div class="tag">Guidebook · Preview draft</div>
+  <div class="tag">Guidebook · Preview</div>
 </header>
 
 <main><div class="stage"><div id="book"></div></div></main>
@@ -99,9 +99,9 @@
 
 <script src="https://cdn.jsdelivr.net/npm/page-flip@2.0.7/dist/js/page-flip.browser.js"></script>
 <script>
-  // Reading order: front cover, inside spreads 02–17 (left, right), back cover.
+  // Reading order: front cover, inside spreads 02–21 (left, right), back cover.
   const pages = ['pages/s01-R.jpg'];
-  for (let i = 2; i <= 17; i++) {
+  for (let i = 2; i <= 21; i++) {
     const n = String(i).padStart(2, '0');
     pages.push(`pages/s${n}-L.jpg`, `pages/s${n}-R.jpg`);
   }
